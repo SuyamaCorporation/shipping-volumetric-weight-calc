@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shipping Volumetric Weight Calculator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen p-4">
+<div class="max-w-3xl mx-auto">
+  <h1 class="text-2xl font-bold mb-1 text-cyan-400">Shipping Volumetric Weight Calculator</h1>
+  <p class="text-sm text-gray-400 mb-5">Calculate chargeable weight across major carriers.</p>
+
+  <!-- Unit toggle -->
+  <div class="flex gap-2 mb-5">
+    <label class="text-sm text-gray-400 self-center mr-2">Units:</label>
+    <button id="btnCm" onclick="setUnits('cm')"
+      class="px-4 py-2 rounded font-semibold text-sm bg-cyan-700 text-white">cm / kg</button>
+    <button id="btnIn" onclick="setUnits('in')"
+      class="px-4 py-2 rounded font-semibold text-sm bg-gray-700 text-gray-300 hover:bg-gray-600">in / lbs</button>
+  </div>
+
+  <!-- Inputs -->
+  <div class="bg-gray-800 rounded-xl p-5 mb-5">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div>
+        <label for="length" class="block text-xs text-gray-400 mb-1">Length (<span class="unit-dim">cm</span>)</label>
+        <input id="length" type="number" value="40" min="0.1" step="0.1"
+          class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+      </div>
+      <div>
+        <label for="width" class="block text-xs text-gray-400 mb-1">Width (<span class="unit-dim">cm</span>)</label>
+        <input id="width" type="number" value="30" min="0.1" step="0.1"
+          class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+      </div>
+      <div>
+        <label for="height" class="block text-xs text-gray-400 mb-1">Height (<span class="unit-dim">cm</span>)</label>
+        <input id="height" type="number" value="20" min="0.1" step="0.1"
+          class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+      </div>
+      <div>
+        <label for="actualWeight" class="block text-xs text-gray-400 mb-1">Actual Weight (<span class="unit-wt">kg</span>)</label>
+        <input id="actualWeight" type="number" value="3" min="0.01" step="0.01"
+          class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Table -->
+  <div class="bg-gray-800 rounded-xl p-5">
+    <h2 class="text-base font-semibold mb-4 text-cyan-300">Carrier Comparison</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-gray-400 text-xs border-b border-gray-700">
+            <th class="text-left pb-2 pr-4">Carrier</th>
+            <th class="text-right pb-2 pr-4">Divisor</th>
+            <th class="text-right pb-2 pr-4">Vol. Weight</th>
+            <th class="text-right pb-2 pr-4">Actual Weight</th>
+            <th class="text-right pb-2">Chargeable</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Box visualization summary -->
+    <div class="mt-5 flex flex-wrap gap-4">
+      <div class="bg-gray-700 rounded-lg px-4 py-3 text-center flex-1 min-w-28">
+        <div class="text-xs text-gray-400 mb-1">Volume</div>
+        <div id="volDisplay" class="text-lg font-bold text-white">—</div>
+      </div>
+      <div class="bg-gray-700 rounded-lg px-4 py-3 text-center flex-1 min-w-28">
+        <div class="text-xs text-gray-400 mb-1">Actual Weight</div>
+        <div id="actualDisplay" class="text-lg font-bold text-blue-300">—</div>
+      </div>
+      <div class="bg-gray-700 rounded-lg px-4 py-3 text-center flex-1 min-w-28">
+        <div class="text-xs text-gray-400 mb-1">Cheapest Rate Uses</div>
+        <div id="cheapestDisplay" class="text-lg font-bold text-cyan-300">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let unitMode = 'cm'; // 'cm' or 'in'
+
+const carriers = [
+  { name: 'FedEx',  cmDiv: 5000, inDiv: 139 },
+  { name: 'UPS',    cmDiv: 5000, inDiv: 139 },
+  { name: 'DHL',    cmDiv: 5000, inDiv: 139 },
+  { name: 'USPS',   cmDiv: 5000, inDiv: 166 },
+];
+
+function setUnits(mode) {
+  unitMode = mode;
+  document.getElementById('btnCm').className = mode === 'cm'
+    ? 'px-4 py-2 rounded font-semibold text-sm bg-cyan-700 text-white'
+    : 'px-4 py-2 rounded font-semibold text-sm bg-gray-700 text-gray-300 hover:bg-gray-600';
+  document.getElementById('btnIn').className = mode === 'in'
+    ? 'px-4 py-2 rounded font-semibold text-sm bg-cyan-700 text-white'
+    : 'px-4 py-2 rounded font-semibold text-sm bg-gray-700 text-gray-300 hover:bg-gray-600';
+  document.querySelectorAll('.unit-dim').forEach(el => el.textContent = mode);
+  document.querySelectorAll('.unit-wt').forEach(el => el.textContent = mode === 'cm' ? 'kg' : 'lbs');
+  compute();
+}
+
+function compute() {
+  const L = parseFloat(document.getElementById('length').value) || 0;
+  const W = parseFloat(document.getElementById('width').value) || 0;
+  const H = parseFloat(document.getElementById('height').value) || 0;
+  const A = parseFloat(document.getElementById('actualWeight').value) || 0;
+
+  const vol = L * W * H;
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+
+  let minChargeable = Infinity;
+
+  carriers.forEach(c => {
+    const divisor = unitMode === 'cm' ? c.cmDiv : c.inDiv;
+    const volWeight = vol / divisor;
+    const chargeable = Math.max(A, volWeight);
+    const isVol = volWeight > A;
+    if (chargeable < minChargeable) minChargeable = chargeable;
+
+    const tr = document.createElement('tr');
+    tr.className = 'border-b border-gray-700';
+
+    const unit = unitMode === 'cm' ? 'kg' : 'lbs';
+    const volStr = unitMode === 'cm' ? vol.toFixed(0) + ' cm³' : vol.toFixed(1) + ' in³';
+
+    tr.innerHTML = `
+      <td class="py-2 pr-4 font-semibold text-gray-200">${c.name}</td>
+      <td class="py-2 pr-4 text-right text-gray-400">${divisor.toLocaleString()} ${unitMode === 'cm' ? 'cm³/kg' : 'in³/lb'}</td>
+      <td class="py-2 pr-4 text-right ${isVol ? 'text-yellow-300 font-bold' : 'text-gray-400'}">${volWeight.toFixed(2)} ${unit}</td>
+      <td class="py-2 pr-4 text-right ${!isVol ? 'text-yellow-300 font-bold' : 'text-gray-400'}">${A.toFixed(2)} ${unit}</td>
+      <td class="py-2 text-right font-bold text-cyan-300">${chargeable.toFixed(2)} ${unit} ${isVol ? '<span class="text-xs text-yellow-400">(vol)</span>' : '<span class="text-xs text-blue-400">(actual)</span>'}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const unit = unitMode === 'cm' ? 'kg' : 'lbs';
+  const volStr = unitMode === 'cm' ? vol.toFixed(0) + ' cm³' : vol.toFixed(1) + ' in³';
+  document.getElementById('volDisplay').textContent = volStr;
+  document.getElementById('actualDisplay').textContent = A.toFixed(2) + ' ' + unit;
+  document.getElementById('cheapestDisplay').textContent = minChargeable.toFixed(2) + ' ' + unit;
+}
+
+['length','width','height','actualWeight'].forEach(id =>
+  document.getElementById(id).addEventListener('input', compute));
+
+compute();
+</script>
+</body>
+</html>
